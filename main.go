@@ -9,13 +9,12 @@ import (
 )
 
 func main() {
-	// 1. Настраиваем "крутилки" (Флаги)
-	// Имя флага, значение по умолчанию, описание
+	//flags
 	target := flag.String("t", "scanme.nmap.org", "Target IP/Domain")
 	threads := flag.Int("w", 100, "Number of workers (threads)")
 	maxPort := flag.Int("p", 100, "Scan ports from 1 to P")
 
-	flag.Parse() // Считываем ввод пользователя
+	flag.Parse() // enter after flags
 
 	var openPorts []int
 	var wg sync.WaitGroup
@@ -24,12 +23,12 @@ func main() {
 	jobs := make(chan int, 100)
 	results := make(chan int)
 
-	// Запускаем воркеров (количество берем из флага -w)
+	// for - start workers pool
 	for i := 1; i <= *threads; i++ {
 		go worker(i, *target, jobs, results, &wg)
 	}
 
-	// Сборщик результатов
+	// result worker pool
 	resultsWg.Add(1)
 	go func() {
 		for p := range results {
@@ -38,7 +37,7 @@ func main() {
 		resultsWg.Done()
 	}()
 
-	// Раздаем задачи (до порта, указанного в -p)
+	// get tasks
 	for i := 1; i <= *maxPort; i++ {
 		wg.Add(1)
 		jobs <- i
@@ -49,7 +48,7 @@ func main() {
 	close(results)
 	resultsWg.Wait()
 
-	// СОРТИРОВКА перед выводом
+	// sort before output
 	sort.Ints(openPorts)
 
 	fmt.Printf("\n--- Scan Results for %s ---\n", *target)
